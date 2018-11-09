@@ -2,7 +2,34 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+public enum UIType
+{
+    Normal,//普通
+    Mutex,//互斥
+    Pop//弹窗
+}
+
 public class BaseUI : MonoBehaviour {
+    [SerializeField]
+    [Title("UI类型", "black")]
+    UIType _uiType;
+    public UIType Type
+    {
+        get
+        {
+            return _uiType;
+        }
+    }
+    //判断该窗口是否正打开中(隐藏也属于打开状态)
+    bool _Openning;
+    public bool IsOpenning
+    {
+        get
+        {
+            return _Openning;
+        }
+    }
+
     public UIManager _uiMgr;
     public UIManager UIMgr
     {
@@ -29,12 +56,18 @@ public class BaseUI : MonoBehaviour {
     {
         //
         gameObject.SetActive(false);
-        //UIMgr.CloseWnd();
-        Debug.Log(UIName);
+        _Openning = false;
+        UIMgr.CloseWnd(this);
     }
+    public void Hide()
+    {
+        gameObject.SetActive(false);
+    }
+
     public void Show()
     {
         gameObject.SetActive(true);
+        _Openning = true;
     }
 	// Use this for initialization
 	void Start () {

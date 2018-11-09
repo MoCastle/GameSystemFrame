@@ -93,6 +93,8 @@ public class UIManager {
             Debug.Log("UI NotAddScript");
             return null;
         }
+        HideMutex();
+
         uiGameObj.transform.SetParent(_NormQue,false);
         UIScr.Show();
         _CurShowUI.Add( UIName ,uiGameObj.transform);
@@ -105,6 +107,7 @@ public class UIManager {
     public void CloseWnd( BaseUI baseUI )
     {
         _GCUIDict.Add(baseUI.UIName,Time.time);
+        ReShowUI();
     }
 
     //获取UI
@@ -123,6 +126,71 @@ public class UIManager {
         return loadedUIModel;
     }
 
-    
+    //互斥窗口处理 隐藏上一个已打开窗口
+    public void HideMutex( )
+    {
+        //没有打开后需要隐藏的窗口
+        if(_NormQue.childCount<1)
+        {
+            return;
+        }
+        //获取之前最后一个窗口
+        BaseUI ShowingWnd = null;
+        for(int index = _NormQue.childCount-1;index>=0;--index)
+        {
+            Transform WndObj = _NormQue.GetChild(index);
+            ShowingWnd = WndObj.GetComponent<BaseUI>();
+            //跳过被关掉的窗口
+            if (ShowingWnd.IsOpenning == false)
+            {
+                continue;
+            }else
+            {
+                //找到上一个打开中的窗口了
+                break;
+            }
+        }
+        //对上一个已打开窗口处理 若互斥则隐藏
+        if (ShowingWnd.Type == UIType.Mutex)
+        {
+            ShowingWnd.Hide();
+        }
+        
+    }
+
+    //关掉窗口后 处理上一个窗口 若隐藏则打开
+    public void ReShowUI( )
+    {
+        BaseUI ShowingWnd = null;
+        if(_NormQue.childCount < 1)
+        {
+            return;
+        }
+
+        //找到上一个窗口
+        for (int index = _NormQue.childCount - 1; index >= 0; --index)
+        {
+            Transform WndObj = _NormQue.GetChild(index);
+            ShowingWnd = WndObj.GetComponent<BaseUI>();
+            //跳过被关掉的窗口
+            if (ShowingWnd.IsOpenning == false)
+            {
+                continue;
+            }
+            else
+            {
+                //找到上一个打开中的窗口了
+                break;
+            }
+        }
+
+        if(ShowingWnd.Type != UIType.Mutex)
+        {
+            return;
+        }else
+        {
+            ShowingWnd.Show();
+        }
+    }
     #endregion
 }
