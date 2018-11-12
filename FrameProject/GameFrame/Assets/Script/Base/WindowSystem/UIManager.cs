@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 public class UIManager {
     #region 对外接口
@@ -23,6 +24,9 @@ public class UIManager {
     Transform _UICanvas;
     //普通层UI队列
     Transform _NormQue;
+    //通用BG
+    Transform _BG;
+    EventTrigger _BGTrigger;
 
     //当前已打开的UI
     Dictionary<string, Transform> _CurShowUI;
@@ -57,6 +61,8 @@ public class UIManager {
         _UICanvas = uiGameObj.transform;
 
         _NormQue = _UICanvas.transform.FindChild("NormUI");
+        _BG = _NormQue.FindChild("BG");
+        _BG.gameObject.SetActive(false);
         if (_NormQue == null)
         {
             Debug.Log("UICanvas Lay NormUI Missed");
@@ -76,7 +82,7 @@ public class UIManager {
         {
             outUIWnd.gameObject.SetActive(true);
             outUIWnd.SetAsLastSibling();
-            return null;
+            return outUIWnd.GetComponent<BaseUI>();
         }
 
         //没有打开 重新加载
@@ -93,10 +99,10 @@ public class UIManager {
             Debug.Log("UI NotAddScript");
             return null;
         }
-        HideMutex();
+        HideCurMutex();
 
         uiGameObj.transform.SetParent(_NormQue,false);
-        UIScr.Show();
+        ShowOPForUI(UIScr);
         _CurShowUI.Add( UIName ,uiGameObj.transform);
         _GCUIDict.Remove(UIName);
 
@@ -108,6 +114,7 @@ public class UIManager {
     {
         _GCUIDict.Add(baseUI.UIName,Time.time);
         ReShowUI();
+        CloseOPForUI();
     }
 
     //获取UI
@@ -126,8 +133,8 @@ public class UIManager {
         return loadedUIModel;
     }
 
-    //互斥窗口处理 隐藏上一个已打开窗口
-    public void HideMutex( )
+    //互斥窗口处理 隐藏当前已经打开的窗口
+    public void HideCurMutex( )
     {
         //没有打开后需要隐藏的窗口
         if(_NormQue.childCount<1)
@@ -135,45 +142,31 @@ public class UIManager {
             return;
         }
         //获取之前最后一个窗口
-        BaseUI ShowingWnd = null;
-        for(int index = _NormQue.childCount-1;index>=0;--index)
-        {
-            Transform WndObj = _NormQue.GetChild(index);
-            ShowingWnd = WndObj.GetComponent<BaseUI>();
-            //跳过被关掉的窗口
-            if (ShowingWnd.IsOpenning == false)
-            {
-                continue;
-            }else
-            {
-                //找到上一个打开中的窗口了
-                break;
-            }
-        }
+        BaseUI ShowingWnd = GetCurUI();
+        
         //对上一个已打开窗口处理 若互斥则隐藏
-        if (ShowingWnd.Type == UIType.Mutex)
+        if (ShowingWnd!=null&& ShowingWnd.Type == UIType.Mutex)
         {
             ShowingWnd.Hide();
         }
         
     }
 
-    //关掉窗口后 处理上一个窗口 若隐藏则打开
-    public void ReShowUI( )
+    //获取当前打开窗口
+    public BaseUI GetCurUI()
     {
-        BaseUI ShowingWnd = null;
-        if(_NormQue.childCount < 1)
+        if( _NormQue.childCount <1 )
         {
-            return;
+            return null;
         }
-
-        //找到上一个窗口
+        BaseUI CurUI = null;
+        
         for (int index = _NormQue.childCount - 1; index >= 0; --index)
         {
             Transform WndObj = _NormQue.GetChild(index);
-            ShowingWnd = WndObj.GetComponent<BaseUI>();
+            CurUI = WndObj.GetComponent<BaseUI>();
             //跳过被关掉的窗口
-            if (ShowingWnd.IsOpenning == false)
+            if (CurUI == null || CurUI.IsOpenning == false)
             {
                 continue;
             }
@@ -183,14 +176,57 @@ public class UIManager {
                 break;
             }
         }
+        return CurUI;
+    }
 
-        if(ShowingWnd.Type != UIType.Mutex)
+    //关掉窗口后 处理上一个窗口 若隐藏则打开
+    public void ReShowUI( )
+    {
+       
+        if(_NormQue.childCount < 1)
+        {
+            return;
+        }
+        BaseUI ShowingWnd = GetCurUI();
+        
+        if(ShowingWnd==null || ShowingWnd.Type != UIType.Mutex)
         {
             return;
         }else
         {
-            ShowingWnd.Show();
+            ShowOPForUI(ShowingWnd);
         }
+    }
+
+    //针对显示UI的操作
+    void ShowOPForUI( BaseUI OPUI)
+    {
+        OPUI.Show();
+        bool NeedBG = OPUI.IsUseBG;
+        if(NeedBG)
+        {
+            int BGIdx = _BG.transform.GetSiblingIndex();
+            int ShowIdx = OPUI.transform.GetSiblingIndex();
+
+            _BG.SetSiblingIndex(BGIdx>ShowIdx? ShowIdx:ShowIdx - 1);
+            _BG.gameObject.SetActive(true);
+            if( OPUI.IsUseBGFunc )
+            {
+                
+                //PointerEventData Func = new PointerEventData(OPUI.BGFunc);
+                /*    OPUI.BGFunc;
+                _BGTrigger.OnPointerClick(OPUI.BGFunc);*/
+            }
+        }
+        else
+        {
+            _BG.gameObject.SetActive(false);
+        }
+    }
+    //针对单个UI的关闭操作
+    void CloseOPForUI(  )
+    {
+        _BG.gameObject.SetActive(false);
     }
     #endregion
 }

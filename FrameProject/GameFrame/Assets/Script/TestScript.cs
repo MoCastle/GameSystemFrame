@@ -9,7 +9,8 @@ public class TestScript : MonoBehaviour {
         UIManager Mgr = UIManager.Manager;
         Mgr.ShowUI("TestWndTwo");
         OneUI = Mgr.ShowUI("TestWndOne");
-        OneUI.Close();
+        //Debug.Log(transform.hierarchyCount);
+        //OneUI.Close();
         // Mgr.ShowUI("TestWndTwo");
     }
     private void Update()
